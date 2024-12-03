@@ -1,94 +1,95 @@
-from transformers import pipeline
-from PyPDF2 import PdfReader
+import openai
+import os
+import PyPDF2
+import nltk
+from nltk.tokenize import word_tokenize
 
-# Step 1: Load Question Generation Pipeline
-qg_pipeline = pipeline("text2text-generation", model="valhalla/t5-small-qg-prepend")
+# Read OpenAI API key from environment variable
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
-# Step 2: Extract Text from PDF
-def extract_text_from_pdf("C:\Users\Upma\Documents\genai\Generative Deep Learning, 2nd Edition.pdf"):
-    """
-    Extracts text from a PDF file.
+# Function to extract text from a PDF file
+def extract_text_from_pdf(pdf_path):
+    with open(pdf_path, "rb") as file:
+        reader = PyPDF2.PdfReader(file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text()
+    return text
 
-    Args:
-    pdf_path (str): Path to the PDF file.
+# Function to generate more specific questions based on content
+def generate_questions_from_text(text):
+    # Tokenize the text into words
+    words = word_tokenize(text)
 
-    Returns:
-    str: Extracted text from the PDF.
-    """
-    from PyPDF2 import PdfReader  # Ensure this import is at the top if running the whole script.
-    reader = PdfReader(pdf_path)
-    full_text = ""
-    for page in reader.pages:
-        full_text += page.extract_text()
-    return full_text
-# Step 3: Split Text into Chunks
-def split_text_into_chunks(text, chunk_size=500):
-    """
-    Splits text into smaller chunks.
+    # Identify specific terms related to common data structures and algorithms
+    question_terms = ['circular', 'queue', 'stack', 'binary', 'linked', 'complexity', 'insert', 'delete', 'operation', 'algorithm', 'singly', 'doubly']
 
-    Args:
-    text (str): The text to split.
-    chunk_size (int): Number of words per chunk.
+    # Process the words and generate possible questions based on key terms
+    questions = []
+    for term in question_terms:
+        if term in words:
+            if term == 'circular':
+                questions.append("What is a Circular Linked List and how does its insertion and deletion work?")
+            elif term == 'queue':
+                questions.append("What are the different operations of a Queue and how do you implement them?")
+            elif term == 'stack':
+                questions.append("Explain the Stack data structure and its basic operations.")
+            elif term == 'binary':
+                questions.append("What is the Binary Search algorithm and how does it work?")
+            elif term == 'linked':
+                questions.append("What is a Linked List and how do you perform insertion and deletion operations?")
+            elif term == 'complexity':
+                questions.append("What is the time complexity of Binary Search?")
+            elif term == 'insert':
+                questions.append("How do you insert a node in a Singly Linked List?")
+            elif term == 'delete':
+                questions.append("How do you delete a node from a Queue?")
+            elif term == 'operation':
+                questions.append("What are the main operations of a Stack?")
+            elif term == 'algorithm':
+                questions.append("What is an algorithm? Explain with an example.")
+            elif term == 'singly':
+                questions.append("What is a Singly Linked List and how does it differ from a Doubly Linked List?")
+            elif term == 'doubly':
+                questions.append("What are the advantages of a Doubly Linked List over a Singly Linked List?")
 
-    Returns:
-    list: A list of text chunks.
-    """
-    words = text.split()
-    chunks = [' '.join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
-    return chunks
+    return questions
 
-# Step 4: Generate Questions from Chunks
-def generate_questions(text_chunks, num_questions=3):
-    """
-    Generates questions from text chunks using a Hugging Face pipeline.
+# Function to get answers from OpenAI API using chat completions
+def get_answer_from_openai(question):
+    try:
+        completion = openai.ChatCompletion.create(
+            model="gpt-4",  # Use the appropriate model here
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": question}
+            ]
+        )
+        answer = completion.choices[0].message['content']
+        return answer
+    except Exception as e:
+        print(f"Error generating answer: {e}")
+        return "Answer not available"
 
-    Args:
-    text_chunks (list): List of text chunks.
-    num_questions (int): Number of questions per chunk.
-
-    Returns:
-    dict: A dictionary mapping chunk indices to generated questions.
-    """
-    all_questions = {}
-    for idx, chunk in enumerate(text_chunks):
-        try:
-            generated = qg_pipeline(f"generate question: {chunk}", 
-                                    max_length=100, 
-                                    num_return_sequences=num_questions)
-            all_questions[f"Chunk {idx + 1}"] = [q["generated_text"] for q in generated]
-        except Exception as e:
-            all_questions[f"Chunk {idx + 1}"] = [f"Error: {str(e)}"]
-    return all_questions
-
-# Step 5: Main Function to Process PDF
-def process_pdf_and_generate_questions(pdf_path, chunk_size=500, num_questions=3, output_file="output_questions.txt"):
-    """
-    Processes a PDF file to generate questions for each text chunk.
-
-    Args:
-    pdf_path (str): Path to the PDF file.
-    chunk_size (int): Number of words per chunk.
-    num_questions (int): Number of questions per chunk.
-    output_file (str): Path to save the generated questions.
-    """
-    print("Extracting text from PDF...")
+# Function to generate a study material text file
+def generate_study_material(pdf_path, filename="study_material.txt"):
+    # Extract text from the PDF
     text = extract_text_from_pdf(pdf_path)
+    
+    # Generate questions based on the extracted text
+    questions = generate_questions_from_text(text)
+    
+    # Open a file to save the study material
+    with open(filename, 'w') as file:
+        for i, question in enumerate(questions, 1):
+            file.write(f"Q: {question}\n")
+            answer = get_answer_from_openai(question)
+            file.write(f"A: {answer}\n\n")
+    
+    print(f"Study material saved to {filename}")
 
-    print("Splitting text into chunks...")
-    chunks = split_text_into_chunks(text, chunk_size=chunk_size)
+# Path to your PDF file
+pdf_path = r'C:\Users\Upma\Dropbox\PC\Downloads\qb.pdf'
 
-    print(f"Generating questions for {len(chunks)} chunks...")
-    questions = generate_questions(chunks, num_questions=num_questions)
-
-    print("Saving questions to file...")
-    with open(output_file, "w") as f:
-        for chunk, qs in questions.items():
-            f.write(f"{chunk}:\n")
-            f.writelines(f"- {q}\n" for q in qs)
-            f.write("\n")
-    print(f"Questions saved to {output_file}!")
-
-# Step 6: Run the Script
-if __name__ == "__main__":
-    pdf_path = "path_to_your_pdf.pdf"  # Replace with the path to your PDF
-    process_pdf_and_generate_questions(pdf_path, chunk_size=500, num_questions=3)
+# Generate study material from the PDF and save it to a file
+generate_study_material(pdf_path)
