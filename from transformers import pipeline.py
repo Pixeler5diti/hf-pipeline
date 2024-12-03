@@ -4,10 +4,8 @@ import PyPDF2
 import nltk
 from nltk.tokenize import word_tokenize
 
-# Read OpenAI API key from environment variable
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
-# Function to extract text from a PDF file
 def extract_text_from_pdf(pdf_path):
     with open(pdf_path, "rb") as file:
         reader = PyPDF2.PdfReader(file)
@@ -16,15 +14,10 @@ def extract_text_from_pdf(pdf_path):
             text += page.extract_text()
     return text
 
-# Function to generate more specific questions based on content
+
 def generate_questions_from_text(text):
-    # Tokenize the text into words
     words = word_tokenize(text)
-
-    # Identify specific terms related to common data structures and algorithms
     question_terms = ['circular', 'queue', 'stack', 'binary', 'linked', 'complexity', 'insert', 'delete', 'operation', 'algorithm', 'singly', 'doubly']
-
-    # Process the words and generate possible questions based on key terms
     questions = []
     for term in question_terms:
         if term in words:
@@ -54,8 +47,7 @@ def generate_questions_from_text(text):
                 questions.append("What are the advantages of a Doubly Linked List over a Singly Linked List?")
 
     return questions
-
-# Function to get answers from OpenAI API using chat completions
+    #usin openai to get me the answes :)
 def get_answer_from_openai(question):
     try:
         completion = openai.ChatCompletion.create(
@@ -71,15 +63,12 @@ def get_answer_from_openai(question):
         print(f"Error generating answer: {e}")
         return "Answer not available"
 
-# Function to generate a study material text file
+#  generatin a study material text file
 def generate_study_material(pdf_path, filename="study_material.txt"):
-    # Extract text from the PDF
-    text = extract_text_from_pdf(pdf_path)
     
-    # Generate questions based on the extracted text
+    text = extract_text_from_pdf(pdf_path)
     questions = generate_questions_from_text(text)
     
-    # Open a file to save the study material
     with open(filename, 'w') as file:
         for i, question in enumerate(questions, 1):
             file.write(f"Q: {question}\n")
@@ -88,8 +77,8 @@ def generate_study_material(pdf_path, filename="study_material.txt"):
     
     print(f"Study material saved to {filename}")
 
-# Path to your PDF file
-pdf_path = r'C:\Users\Upma\Dropbox\PC\Downloads\qb.pdf'
 
-# Generate study material from the PDF and save it to a file
+pdf_path = r'enter the path to your pdf file'
+
+
 generate_study_material(pdf_path)
