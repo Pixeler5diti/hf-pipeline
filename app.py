@@ -41,5 +41,5 @@ def generate_study_material(pdf_path, filename="study_material.txt"):
 
 
 pdf_path = r"" #enter path to your pdf file
-#your txt file is ready :)
+#your text file is ready,check downloads folder :)
 generate_study_material(pdf_path)
